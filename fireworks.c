@@ -6,22 +6,21 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define max 4000
-#define x 280 // replace with your own window size
+#define max 400
+#define x 280
 #define y 72
+#define maxbuildings (x / 5)
 
-char *chars[6] = {" ", ".", "*", "@", "^"};
-int allcolours[7] = {0, 31, 32, 33, 34, 35, 36};
+char *chars[13] = {" ", ".", "*", "@", "^", "|", "=", "■", "x", "#", "@", ".", "$"};
+int allcolours[12] = {0, 31, 32, 33, 34, 35, 36, 41, 42, 44, 45, 46};
 int display[x][y][2];
-int count = 0;
+int pcount = 0;
+int bcount = 0;
 int character[max];
 int type[max]; // 0 for firework, 1 for normal
-float xpos[max];
-float ypos[max];
-float xvel[max];
-float yvel[max];
+float xpos[max], ypos[max], xvel[max], yvel[max]; // particle stuff
 int colour[max];
-int i, j;
+int i, j, k;
 
 int epoch() { // epoch but in milliseconds yes
 	struct timeval tv;
@@ -30,34 +29,33 @@ int epoch() { // epoch but in milliseconds yes
 }
 
 void create_particle(float xp, float yp, float xv, float yv, int c, int t, int clr) {
-	if (count < max) {
-		xpos[count] = xp;
-		ypos[count] = yp;
-		xvel[count] = xv;
-		yvel[count] = yv;
-		character[count] = c;
-		type[count] = t;
-		colour[count] = clr;
-		count++;
+	if (pcount < max) {
+		xpos[pcount] = xp;
+		ypos[pcount] = yp;
+		xvel[pcount] = xv;
+		yvel[pcount] = yv;
+		character[pcount] = c;
+		type[pcount] = t;
+		colour[pcount] = clr;
+		pcount++;
 	}
 }
 
 void remove_particle(int idx) { // move last one to fill the gap and let it overwrite the last space
-	display[(int)round(xpos[idx]) % (x - 1)][(int)round(ypos[idx]) % (y - 1)][0] = 0; // gotta remove it here i think
-	xpos[idx] = xpos[count - 1];
-	ypos[idx] = ypos[count - 1];
-	xvel[idx] = xvel[count - 1];
-	yvel[idx] = yvel[count - 1];
-	character[idx] = character[count - 1];
-	type[idx] = type[count - 1];
-	colour[idx] = colour[count - 1];
-	count = count - 1;
+	xpos[idx] = xpos[pcount - 1];
+	ypos[idx] = ypos[pcount - 1];
+	xvel[idx] = xvel[pcount - 1];
+	yvel[idx] = yvel[pcount - 1];
+	character[idx] = character[pcount - 1];
+	type[idx] = type[pcount - 1];
+	colour[idx] = colour[pcount - 1];
+	pcount = pcount - 1;
 }
 
 void update() {
 	i = 0;
-	while (i < count) { // probably can't for loop cuz the size changes lole
-		if (yvel[i] > -0.1 && type[i] == 0) { // explode near its highest point
+	while (i < pcount) { // probably can't for loop cuz the size changes lole
+		if (yvel[i] > 0 && type[i] == 0) { // explode at highest point
 			for (j = 0; j < 50; j++) { // make lil particles
 				create_particle(xpos[i], ypos[i], (float)(rand() % 200 - 100) / 150, (float)(rand() % 200 - 100) / 170, rand() % 2 + 1, 1, rand() % 6 + 1);
 			}
@@ -66,7 +64,7 @@ void update() {
 			continue;
 		}
 		
-		display[(int)round(xpos[i]) % (x - 1)][(int)round(ypos[i]) % (y - 1)][0] = 0; // remove old
+		display[(int)round(xpos[i])][(int)round(ypos[i])][0] = 0; // remove old
 		
 		xpos[i] = xpos[i] + xvel[i];
 		ypos[i] = ypos[i] + yvel[i];
@@ -108,8 +106,9 @@ int main() {
 	memset(xvel, 0, max*sizeof(int));
 	memset(yvel, 0, max*sizeof(int));
 	
-	for (i = 0; i < x; i++) { // floor
-		display[i][y-1][0] = 4;
+	for (i = 0; i < x; i++) {
+		display[i][0][0] = 6;
+		display[i][y-1][0] = 4; // floor
 	}
 	
 	printf("\033[2J"); // clear screen ansi
